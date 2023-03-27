@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <style>
+        .top-buffer {
+            margin-top: 8px;
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+</head>
+<body>
+    <% if (admin) { %>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+
+                <!-- Lecturers -->
+                <div class="top-buffer panel panel-default">
+                    <div class="panel-heading">
+                        Lecturers
+                    </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th style="text-align: center">Email</th>
+                                <th style="text-align: center">Firstname</th>
+                                <th style="text-align: center">Lastname</th>
+                                <th style="text-align: center">Banned</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                            <% for (let i = 0; i < lecturers.length; i++) { %>
+                                <tr id="row-lecturer-<%= lecturers[i].email %>">
+                                    <td style="text-align: center"><%= lecturers[i].email %></td>
+                                    <td style="text-align: center"><%= lecturers[i].firstname %></td>
+                                    <td style="text-align: center"><%= lecturers[i].lastname %></td>
+                                    <% if (lecturers[i].banned) { %>
+                                        <td style="text-align: center" id="date-<%= lecturers[i].email %>"><%= lecturers[i].banned.getDate() %>/<%= lecturers[i].banned.getMonth()+1 %>/<%= lecturers[i].banned.getFullYear() %></td>
+                                    <% } else { %>
+                                        <td style="text-align: center" id="date-<%= lecturers[i].email %>">null</td>
+                                    <% } %>
+                                    <td style="text-align: center">
+                                        <input class="btn btn-default btn-ban15" type="button" value="Ban 15 days" id="ban15-<%= lecturers[i].email %>">
+                                    </td>
+                                    <td style="text-align: center">
+                                        <input class="btn btn-default btn-ban30" type="button" value="Ban 30 days" id="ban30-<%= lecturers[i].email %>">
+                                    </td>
+                                    <td style="text-align: right">
+                                        <input class="btn btn-default btn-del-lecturer" type="button" value="Delete" id="lecturer-<%= lecturers[i].email %>">
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Courses -->
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Courses
+                    </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th style="text-align: center">Code</th>
+                                <th style="text-align: center">Lecturer Email</th>
+                                <th style="text-align: center">Title</th>
+                                <th style="text-align: center">Start Date</th>
+                                <th style="text-align: center">End Date</th>
+                                <th></th>
+                            </tr>
+                            <% for (let i = 0; i < courses.length; i++) { %>
+                                <tr id="row-course-<%= courses[i].code %>">
+                                    <td style="text-align: center"><%= courses[i].code %></td>
+                                    <td style="text-align: center"><%= courses[i].lecturer %></td>
+                                    <td style="text-align: center"><%= courses[i].title %></td>
+                                    <td style="text-align: center"><%= courses[i].startdate.getDate() %>/<%= courses[i].startdate.getMonth()+1 %>/<%= courses[i].startdate.getFullYear() %></td>
+                                    <td style="text-align: center"><%= courses[i].enddate.getDate() %>/<%= courses[i].enddate.getMonth()+1 %>/<%= courses[i].enddate.getFullYear() %></td>
+                                    <td style="text-align: right">
+                                        <input class="btn btn-default btn-del-course" type="button" value="Delete" id="course-<%= courses[i].code %>">
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Forbidden -->
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Forbidden words
+                    </div>
+                    <div class="panel-body">
+                        <table class="table" id="table-forbidden">
+                            <tr>
+                                <th>Word</th>
+                                <th></th>
+                            </tr>
+                            <% for (let i = 0; i < forbidden.length; i++) { %>
+                                <tr id="row-word-<%= forbidden[i].word %>">
+                                    <td><%= forbidden[i].word %></td>
+                                    <td style="text-align: right">
+                                        <input class="btn btn-default btn-del-word" type="button" value="Delete" id="word-<%= forbidden[i].word %>">
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </table>
+                        <form class="form">
+                            <input class="form-control" placeholder="New forbidden word" id="word">
+                            <button type="button" class="top-buffer btn btn-primary" id="newword">Submit</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <% } else { %>
+        <p>You are not eligible to see this.</p>
+    <% } %>
+
+    <script>
+
+        $(".btn-del-lecturer").click(function (e) {
+
+            e.stopPropagation();
+
+            let lecturer = e.target.id.split('-')[1];
+
+            $.ajax({
+               url: "tables/dellecturer",
+               method: "POST",
+               data: { lecturer: lecturer },
+               success: function (response) {
+
+                   document.getElementById(e.target.id).parentElement.parentElement.hidden = true;
+
+               }
+            });
+
+        })
+
+        $(".btn-del-course").click(function (e) {
+
+            e.stopPropagation();
+
+            let course = e.target.id.split('-')[1];
+
+            $.ajax({
+                url: "tables/delcourse",
+                method: "POST",
+                data: { course: course },
+                success: function (response) {
+
+                    $("#row-course-" + course)[0].hidden = true;
+
+                }
+            });
+
+        });
+
+        $(".btn-del-word").click(function (e) {
+
+            e.stopPropagation();
+
+            let word = e.target.id.split('-')[1];
+
+            $.ajax({
+                url: "tables/delword",
+                method: "POST",
+                data: { word: word },
+                success: function (response) {
+
+                    $("#row-word-" + word)[0].hidden = true;
+
+                }
+            });
+
+        });
+
+        $("#newword").click(function (e) {
+
+            e.stopPropagation();
+
+            let word = $("#word")[0].value.toLowerCase();
+
+            $.ajax({
+                url: "tables/newword",
+                method: "POST",
+                data: { word: word },
+                success: function(response) {
+                    if (response.inserted) {
+                        $('#table-forbidden').append(`<tr id="row-word-${word}"><td>${word}</td><td style="text-align: right"><input class="btn btn-default btn-del-word" type="button" value="Delete" id="word-${word}"></td></tr>`)
+                        $('#word-' + word).click(function (e) {
+                            e.stopPropagation();
+
+                            let word = e.target.id.split('-')[1];
+
+                            $.ajax({
+                                url: "tables/delword",
+                                method: "POST",
+                                data: { word: word },
+                                success: function (response) {
+
+                                    $("#row-word-" + word)[0].hidden = true;
+
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+
+        });
+
+        // Bans
+
+        $(".btn-ban15").click(function (e) {
+
+            e.stopPropagation();
+
+            let lecturer = e.target.id.split("-")[1];
+
+            $.ajax({
+                url: "tables/ban15",
+                method: "POST",
+                data: { lecturer: lecturer },
+                success: function (response) {
+
+                    let date = response.date;
+
+                    date = date.split("-");
+
+                    let year = date[0];
+                    let month = Number(date[1]);
+                    let day = Number(date[2].slice(0, 2));
+
+                    document.getElementById("date-" + lecturer).innerHTML = day + "/" + month + "/" + year;
+
+                }
+            });
+
+        });
+
+        $(".btn-ban30").click(function (e) {
+
+            e.stopPropagation();
+
+            let lecturer = e.target.id.split("-")[1];
+
+            $.ajax({
+                url: "tables/ban30",
+                method: "POST",
+                data: { lecturer: lecturer },
+                success: function (response) {
+
+                    let date = response.date;
+
+                    date = date.split("-");
+
+                    let year = date[0];
+                    let month = Number(date[1]);
+                    let day = Number(date[2].slice(0, 2));
+
+                    document.getElementById("date-" + lecturer).innerHTML = day + "/" + month + "/" + year;
+
+                }
+            });
+
+        });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+    <style>
+        .top-buffer {
+            margin-top: 10px;
+        }
+
+        .bg {
+            background-color: #f5f5f5;
+        }
+
+        /*.bg-ans {*/
+        /*    background-color: lightgreen;*/
+        /*}*/
+
+        .minus-top {
+            margin-top: -10px;
+        }
+
+        <% if (course.img) { %>
+            body {
+                background-image: url(<%= course.img %>);
+                background-size: cover;
+            }
+        <% } %>
+    </style>
+
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body id="body">
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-inverse navbar-static-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="../"><%= title %></a>
+            </div>
+            <ul class="nav navbar-nav">
+                <li><a href="../">Home</a></li>
+                <% if (user) { %>
+                    <li><a href="../courses">Courses</a></li>
+                    <li><a href="../create">Create</a></li>
+                <% } %>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <% if (!user) { %>
+                    <li><a href="../register"><span class="glyphicon glyphicon-user"></span> Register</a></li>
+                    <li><a href="../login"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                <% } else { %>
+                    <li><a href="../logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+                <% } %>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Reply Modals -->
+    <% if (user && user.email === course.lecturer) { %>
+    <% for (let i = 0; i < course.questions.length; i++) { %>
+        <% let modalId = "reply" + course.questions[i].id; %>
+    <div class="modal fade" role="dialog" id=<%= modalId %>>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Reply</h4>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" class="form replyform" >
+                        <% let reptId = "rept" + course.questions[i].id; %>
+                        <textarea class="form-control" rows="5" placeholder="Reply" style="resize: none" id=<%= reptId %>></textarea>
+                        <input type="submit" class="btn btn-primary" value="Reply">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <% } %>
+    <% } %>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <input type="button" class="btn btn-default" onclick="filterSel('unanswered')" value="Unanswered">
+                <input type="button" class="btn btn-default" onclick="filterSel('answered')" value="Answered">
+                <% if (user && user.email === course.lecturer) { %>
+                <input type="button" class="btn btn-default" onclick="filterSel('bad')" value="Hidden">
+                <% } %>
+                <input type="button" class="btn btn-default" onclick="sortQuestionsByTime()" value="Sort by time">
+                <input type="button" class="btn btn-default" onclick="sortQuestionsByLikes()" value="Sort by likes">
+            </div>
+        </div>
+        <div class="row">
+            <div id="messages" class="col-md-8 col-md-offset-2">
+                <!-- Course title -->
+                <div class="panel panel-default bg">
+                    <div class="panel-body">
+                        <h1><%= course.title %> - #<%= course.code %></h1>
+                    </div>
+                </div>
+                <!-- Question box -->
+                <% if (!user || user.email !== course.lecturer) { %>
+                <div class="panel panel-default bg">
+                    <div class="panel-body">
+                        <form id="form" method="POST" class="form">
+                            <div class="form-group">
+                                <textarea class="form-control" rows="5" id="input" placeholder="Question" style="resize: none"></textarea>
+                                <div class="row top-buffer">
+                                    <div class="col-md-10">
+
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="submit" value="Send" class="btn btn-primary btn-block">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <% } %>
+                <!-- List of questions -->
+                <% for (let i = 0; i < course.questions.length; i++) { %>
+                    <% let type = (course.questions[i].answered) ? "answered" : "unanswered"; %>
+                    <% type = (course.questions[i].visible) ? type : "bad"; %>
+                    <% let color = (course.questions[i].answered) ? "lightgreen" : "#f5f5f5" %>
+                    <div style="background-color: <%= color %>" class="panel panel-default question <%= type %>" id="question-<%= course.questions[i].id %>">
+                        <% if (user && user.email === course.lecturer) { %>
+                        <div style="background-color: <%= color %>" class="panel-footer">
+                            <input type="button" class="btn btn-default btn-ans-question" id="ans-question-<%= course.questions[i].id %>" value="Answer">
+                            <input type="button" class="btn btn-default btn-hide-question" id="hide-question-<%= course.questions[i].id %>" value="Hide">
+                        </div>
+                        <% } %>
+                        <% let qId = "q" + course.questions[i].id %>
+                        <div class="panel-body qbox" id=<%= qId %>>
+                            <%= course.questions[i].question %>
+                            <% if (course.questions[i].replies) { %>
+                                <% let replies = course.questions[i].replies.split(";"); %>
+                                <% for (let j = 0; j < replies.length; j++) { %>
+                                    <div class="panel panel-default top-buffer">
+                                        <div class="panel-body">
+                                            <%= replies[j] %>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            <% } %>
+                        </div>
+                        <div style="background-color: <%= color %>" class="panel-heading minus-top">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <!-- Reply button to questions, only for given lecturers -->
+                                    <% if (user && user.email === course.lecturer) { %>
+                                        <% let replyIdTarget = "#reply" + course.questions[i].id; %>
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target=<%= replyIdTarget %>>Reply</button>
+                                    <% } %>
+                                </div>
+                                <div class="col-md-8 text-center">
+                                    <% if (user && user.email === course.lecturer) { %>
+                                    <input type="button" class="btn btn-default btn-del-question" value="Delete" id="del-question-<%= course.questions[i].id %>">
+                                    <% } %>
+                                </div>
+                                <div class="col-md-2 text-right">
+                                    <form method="POST" action="like">
+                                        <% let buttonId = "like" + course.questions[i].id %>
+                                        <% let onClickFunc = "socket.emit('like', '" + buttonId + "')" %>
+                                        <button onclick="<%= onClickFunc %>" type="button" class="btn btn-default btn-sm like-count" id=<%= buttonId %>>
+                                            <span class="glyphicon glyphicon-thumbs-up"></span> <%= course.questions[i].like_count %>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var socket = io.connect();
+
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+
+        <% if (!user || user.email !== course.lecturer) { %>
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if  (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+        <% } %>
+
+        socket.on('chat message', (msg, qid, hidden) => {
+            var panel = document.createElement("div");
+            panel.classList.add("panel");
+            panel.classList.add("panel-default");
+            panel.classList.add("bg");
+            if (!hidden) {
+                panel.classList.add("unanswered");
+            } else {
+                panel.classList.add("bad");
+            }
+            panel.classList.add("question");
+            panel.id = `question-${qid}`;
+            //console.log("Ovdje dodajem panel: " + panel.id);
+
+            var panelBody = document.createElement("div");
+            panelBody.classList.add("panel-body");
+            panelBody.classList.add("qbox");
+            panelBody.id = "q" + qid;
+            panelBody.textContent = msg;
+
+            panel.appendChild(panelBody);
+
+            var panelFooter = document.createElement("div");
+            panelFooter.classList.add("panel-heading");
+            panelFooter.classList.add("minus-top");
+
+            var row = document.createElement("div");
+            row.classList.add("row");
+            var col1 = document.createElement("div");
+            var col2 = document.createElement("div");
+            var col3 = document.createElement("div");
+            col1.classList.add("col-md-2");
+            col2.classList.add("col-md-8");
+            col2.classList.add("text-center");
+            col3.classList.add("col-md-2");
+            col3.classList.add("text-right");
+            row.appendChild(col1);
+            row.appendChild(col2);
+            row.appendChild(col3);
+
+            var likeForm = document.createElement("form");
+            likeForm.method = "POST";
+            likeForm.action = "like";
+
+            col3.appendChild(likeForm);
+            <% if (user && user.email === course.lecturer) { %>
+            // add delete button to new question
+            let delBtn = $.parseHTML(`<input type="button" class="btn btn-default btn-del-question" value="Delete" id="del-question-${qid}">`)[0];
+            delBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                let btnid = e.target.id.split("-")[2];
+                socket.emit('delq', { qid: btnid });
+            });
+            col2.appendChild(delBtn);
+
+            let ansBtn = document.createElement("input");
+            ansBtn.type = "button";
+            ansBtn.className = "btn btn-default btn-ans-question";
+            ansBtn.id = `ans-question-${qid}`;
+            ansBtn.value = "Answer";
+            ansBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                //console.log("qid emitter element id: " + e.target.id);
+                let qid = e.target.id.split("-")[2];
+                //console.log(qid);
+                //console.log("qid emitter front-end: " + qid);
+                socket.emit('ansq', { qid: qid });
+            });
+
+            let hideBtn = document.createElement("input");
+            hideBtn.type = "button";
+            hideBtn.className = "btn btn-default btn-hide-question";
+            hideBtn.id = `hide-question-${qid}`;
+            hideBtn.value = "Hide";
+            hideBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                let qid = e.target.id.split("-")[2];
+                socket.emit('hideq', { qid: qid });
+            });
+
+            let panelHeader = $.parseHTML(`<div class="panel-footer"></div>`)[0];
+            panelHeader.appendChild(ansBtn);
+            panelHeader.appendChild(hideBtn);
+            panel.prepend(panelHeader);
+
+            var replyBtn = document.createElement("button");
+            replyBtn.type = "button";
+            replyBtn.classList.add("btn");
+            replyBtn.classList.add("btn-primary");
+            replyBtn.setAttribute("data-toggle", "modal");
+            replyBtn.setAttribute("data-target", `#reply${qid}`);
+            replyBtn.innerHTML = "Reply";
+            col1.appendChild(replyBtn);
+
+            var wrapper = document.createElement("div");
+            wrapper.innerHTML = `<div class="modal fade" role="dialog" id="reply${qid}">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h4 class="modal-title">Reply</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST" class="form replyform">
+                                <textarea class="form-control" rows="5" placeholder="Reply" style="resize: none" id="rept${qid}"></textarea>
+                                <input type="submit" class="btn btn-primary" value="Reply">
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+            var newModal = wrapper.firstChild;
+
+            newModal.querySelector('.replyform').addEventListener("submit", (e) => {
+                e.preventDefault();
+                if (e.target[0].value) {
+
+                    //console.log({ qid: e.target[0].id, text: e.target[0].value, lecturer: "<%= course.lecturer %>" });
+
+                    socket.emit('reply', { qid: e.target[0].id, text: e.target[0].value, lecturer: "<%= course.lecturer %>" });
+                    e.target[0].value = '';
+                    $('#reply' + e.target[0].id.slice(4)).modal('hide');
+                }
+            });
+
+            document.getElementById("body").appendChild(newModal);
+
+            <% } %>
+
+            panelFooter.appendChild(row);
+
+            // add like button
+            let button = document.createElement("button");
+            button.classList.add("btn");
+            button.classList.add("btn-default");
+            button.classList.add("btn-sm");
+            button.classList.add("like-count");
+            button.type = "button";
+
+            button.innerHTML = '<span class="glyphicon glyphicon-thumbs-up"></span> 0';
+            button.id = `like${qid}`;
+            button.onclick = function(){socket.emit('like', button.id)};
+
+            likeForm.appendChild(button);
+
+            panel.appendChild(panelFooter);
+
+            <% if (user && user.email === course.lecturer) { %>
+            messages.insertBefore(panel, messages.children[1]);
+            <% } else { %>
+            messages.insertBefore(panel, messages.children[2]); // insert new question before first question
+            <% } %>
+
+            filterSel(currentFilter);
+
+        });
+
+        socket.on('like', ({ id, likes }) => {
+            var button = document.getElementById(id);
+
+            button.innerHTML = '<span class="glyphicon glyphicon-thumbs-up"></span> ' + likes;
+        });
+
+
+        <% if (user && user.email === course.lecturer) { %>
+        var replyforms = Object.values(document.getElementsByClassName("replyform"));
+
+        for (let i = 0; i < replyforms.length; i++) {
+            replyforms[i].addEventListener("submit", (e) => {
+                e.preventDefault();
+                if (e.target[0].value) {
+                    socket.emit('reply', { qid: e.target[0].id, text: e.target[0].value, lecturer: "<%= course.lecturer %>" });
+                    e.target[0].value = '';
+                    $('#reply' + e.target[0].id.slice(4)).modal('hide');
+                }
+            });
+        }
+
+        <% } %>
+
+        socket.on('reply', ({ qid, text }) => {
+            var questions = document.getElementsByClassName("qbox");
+
+            for (let i = 0; i < questions.length; i++) {
+                if (questions[i].id === "q" + qid) {
+                    let newRepBody = document.createElement("div");
+                    newRepBody.classList.add("panel");
+                    newRepBody.classList.add("panel-default");
+                    newRepBody.classList.add("top-buffer");
+
+                    let repBod = document.createElement("div");
+                    repBod.classList.add("panel-body");
+                    repBod.innerHTML = text;
+
+                    newRepBody.appendChild(repBod);
+
+                    questions[i].appendChild(newRepBody);
+
+                    break;
+                }
+            }
+        });
+
+        // delete question
+        <% if (user && user.email === course.lecturer) { %>
+        $(".btn-del-question").click(function (e) {
+            e.stopPropagation();
+            let qid = e.target.id.split("-")[2];
+            socket.emit('delq', { qid: qid });
+        });
+        <% } %>
+
+        socket.on('delq', ({ qid }) => {
+            $("#question-" + qid).remove();
+            //$("#question-" + qid)[0].hidden = true;
+        });
+
+        // answer question
+        <% if (user && user.email === course.lecturer) { %>
+        $(".btn-ans-question").click(function (e) {
+            e.stopPropagation();
+            //console.log("qid emitter element id: " + e.target.id);
+            let qid = e.target.id.split("-")[2];
+            socket.emit('ansq', { qid: qid });
+        });
+        <% } %>
+
+        socket.on('ansq', ({ qid }) => {
+            //console.log("andq qid:" + qid);
+            let question = document.getElementById("question-" + qid);
+            question.classList.remove('unanswered');
+            question.classList.remove('bad'); // if it's there
+            question.classList.add('answered');
+            question.style.backgroundColor = "lightgreen";
+            question.children[0].style.backgroundColor = "lightgreen";
+            question.children[1].style.backgroundColor = "lightgreen";
+            <% if (user && user.email === course.lecturer) { %>
+            question.children[2].style.backgroundColor = "lightgreen";
+            <% } %>
+            filterSel(currentFilter);
+        });
+
+        // Hide question
+        <% if (user && user.email === course.lecturer) { %>
+        $(".btn-hide-question").click(function (e) {
+            e.stopPropagation();
+            //console.log("qid emitter element id: " + e.target.id);
+            let qid = e.target.id.split("-")[2];
+            socket.emit('hideq', { qid: qid });
+        });
+        <% } %>
+
+        socket.on('hideq', ({ qid }) => {
+            let question = document.getElementById("question-" + qid);
+            question.classList.remove('unanswered');
+            question.classList.remove('answered');  // optional
+            question.classList.add('bad');
+            filterSel(currentFilter);
+        });
+
+        var currentFilter = '';
+
+        // Filtering questions
+        function filterSel(c) {
+            let x = document.getElementsByClassName("question");
+
+            for (let i = 0; i < x.length; i++) {
+                x[i].hidden = true;
+                if (x[i].className.split(' ').includes(c)) {
+                    x[i].hidden = false;
+                }
+            }
+
+            currentFilter = c;
+        }
+
+        function sortQuestionsByTime() {
+            let questions = document.getElementsByClassName("question");
+            for (let i = 0; i < questions.length; i++) {
+                for (let j = 1; j < questions.length-i; j++) {
+                    let time1 = parseInt(questions[j].id.split("-")[1]);
+                    let time2 = parseInt(questions[j-1].id.split("-")[1]);
+                    if (time1 > time2) {
+                        questions[j].parentNode.insertBefore(questions[j], questions[j-1]);
+                    }
+                }
+            }
+        }
+
+        function sortQuestionsByLikes() {
+            let questions = document.getElementsByClassName("question");
+            for (let i = 0; i < questions.length; i++) {
+                for (let j = 1; j < questions.length-i; j++) {
+                    let likes1 = parseInt(questions[j].getElementsByClassName("like-count")[0].innerText);
+                    let likes2 = parseInt(questions[j-1].getElementsByClassName("like-count")[0].innerText);
+                    if (likes1 > likes2) {
+                        questions[j].parentNode.insertBefore(questions[j], questions[j-1]);
+                    }
+                }
+            }
+        }
+
+        // on load filter for unanswered
+        filterSel("unanswered");
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <style>
+        .top-buffer {
+            margin-top: 24px;
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+</head>
+<body>
+
+    <!-- Login form -->
+    <div class="container top-buffer">
+        <div class="row">
+            <div class="text-center col-md-4 col-md-offset-4">
+                <h1>Admin login</h1>
+                <form method="POST" class="form-horizontal">
+                    <div class="form-group">
+                        <input type="text" id="username" name="username" placeholder="Username" class="form-control">
+                        <input type="password" id="pass" name="pass" placeholder="Password" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <input type="button" value="Login" class="btn btn-primary btn-block" id="btn-login">
+                    </div>
+                    <div class="alert alert-danger" id="login-alert" hidden>
+                        <strong>You have entered a wrong username or password.</strong>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        $("#btn-login").click(function (e) {
+            e.stopPropagation();
+
+            let username = $("#username")[0].value;
+            let pass = $("#pass")[0].value;
+
+            const format = /^[a-zA-Z0-9]+$/;
+
+            if (!format.test(username) || !format.test(pass)) {
+                $("#login-alert")[0].hidden = false;
+                return;
+            }
+
+            $.ajax({
+                url: "admin/",
+                method: "POST",
+                data: { username: username, pass: pass },
+                success: function (response) {
+                    if (response.failed) {
+                        $("#login-alert")[0].hidden = false;
+                    } else {
+                        window.location.href = "admin/tables";
+                        // $.ajax({
+                        //     url: "admin/tables",
+                        //     method: "GET",
+                        //     success: function (response) {
+                        //
+                        //     }
+                        // });
+                    }
+                }
+            })
+        });
+
+    </script>
+
+</body>
+</html>

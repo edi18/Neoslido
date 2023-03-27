@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <title><%= title %></title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel='stylesheet' href='/stylesheets/style.css' />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+        <style>
+            .top-buffer {
+                margin-top: 24px;
+            }
+        </style>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+    </head>
+    <body>
+
+        <!-- Navigation bar -->
+        <nav class="navbar navbar-inverse navbar-static-top">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="../"><%= title %></a>
+                </div>
+                <ul class="nav navbar-nav">
+                    <li><a href="../">Home</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="../register"><span class="glyphicon glyphicon-user"></span> Register</a></li>
+                    <li><a href="../login"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Login form -->
+        <div class="container top-buffer">
+            <div class="row">
+                <div class="text-center col-md-4 col-md-offset-4" id="form-container">
+                    <h1><%= title %></h1>
+                    <form class="form-horizontal">
+                        <div class="form-group">
+                            <input type="text" id="email" name="email" placeholder="Email address" class="form-control">
+                            <input type="password" id="pass" name="pass" placeholder="Password" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <input type="button" value="Login" class="btn btn-primary btn-block" id="btn-login">
+                        </div>
+                        <div class="alert alert-danger" id="login-alert" hidden>
+                            <strong>You have entered a wrong email or password.</strong>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+
+            $("#btn-login").click(function (e) {
+                e.stopPropagation();
+
+                let email = $("#email")[0].value;
+                let pass = $("#pass")[0].value;
+
+                // validate input beforehand
+                const emailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                const passFormat = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+                if (!emailFormat.test(email) || !passFormat.test(pass)) {
+                    $("#login-alert")[0].hidden = false;
+                    return;
+                }
+
+                $.ajax({
+                   url: "login/",
+                   method: "POST",
+                   data: { email: email, pass: pass },
+                   success: function (response) {
+                       if (response.failed) {
+                           $("#login-alert")[0].hidden = false;
+                       }
+                       else {
+                           $.ajax({
+                               url: "courses",
+                               method: "GET",
+                               success: function (response) {
+                                   window.location = "courses";
+                               }
+                           });
+                       }
+                   }
+               });
+            });
+
+        </script>
+
+    </body>
+</html>
